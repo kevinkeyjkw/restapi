@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content%}
+	<h1>Hi {{user.nickname}}</h1>
+  	{% for post in posts %}
+  	<div><p>{{post.author.nickname}} says <b>{{post.body}}</b></p></div>
+  	{% endfor %}
+  	<div class="container">
+  		<div class="row">
+  			<div class="col-md-6">
+  				Enter timeseries ID: <input type="text" id="ts-id" /></div>
+  			<div class="col-md-2">
+  				<p class="">OR</p>
+  			</div>
+  			<div class="col-md-4">
+  				<label class="btn btn-primary btn-file">
+		    	Browse <input type="file" id="ts-file" style="display: none;">
+				</label>
+  			</div>
+  		</div>
+  		<div class="row top5">
+  			<div class="col-md-2">
+	  			<p><button type="button" id="display-button" class="btn btn-success">Display TS</button></p>
+	  		</div>
+  		</div>
+  		<div class="row top7">
+  			<div class="col-md-10">
+  				<div id="placeholder" style="width:600px;height:300px"></div>
+  			</div>
+  		</div>
+  	</div>
+<!-- 
+  	<form action="http://localhost:5000/login" method="post">
+  		
+  		<p><input type="submit" value="submit" /></p>
+  	</form> -->
+  	
+{% endblock %}
+
