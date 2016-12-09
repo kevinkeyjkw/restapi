@@ -3,6 +3,7 @@ from app import app, db
 from .forms import LoginForm
 from .models import User, Post, Timeseries
 import json
+from sqlalchemy import and_
 
 import socket
 import sys
@@ -83,23 +84,35 @@ def timeseries():
 	else:
 		# should send back a json with metadata from all the time series
 
+		# Get all rows from table
+		results = set(Timeseries.query.all())
+
 		# Get query parameters
-		# mean_in = request.args.get('mean_in')
-		# if mean_in is not None:
-		# 	mean_in = mean_in.split('-')
-		# 	m_min, m_max = float(mean_in[0]),float(mean_in[1])
-		# level_in = request.args.get('level_in')
+		mean_in = request.args.get('mean_in')
+		level_in = request.args.get('level_in')
+		level = request.args.get('level')
 
-		# if level_in is not None:
-		# 	level_in = level_in.split(',') 
-
-		# level = request.args.get('level')
-		# return json.dumps({"1":"1"});
-		results = Timeseries.query.all()
-		# jsonFile = {}
-		# print("Timeseries",results[0].serialize())
+		print("Results1",results)
+		# Filter by mean in 
+		if mean_in is not None:
+			mean_in = mean_in.split('-')
+			m_min, m_max = float(mean_in[0]),float(mean_in[1])
+			tmp = set(Timeseries.query.filter(and_(Timeseries.mean >= m_min, Timeseries.mean <= m_max)).all())
+			results &= tmp
+		print("Results2",results)
+		# Filter by level in 
+		if level_in is not None:
+			level_in = level_in.split(',') 
+			tmp = set(Timeseries.query.filter(Timeseries.level.in_(level_in)).all())
+			results &= tmp
+		print("Results3",results)
+		# Filter by level 
+		if level is not None:
+			tmp = set(Timeseries.query.filter_by(level=level).all())
+			results &= tmp
+		print("Results4",results)
+		# Serialize objects 
 		r = [e.serialize() for e in results]
-		print("R=",r)
 		return json.dumps(r)
 	
 @app.route('/simquery', methods=['POST','GET'])
@@ -119,8 +132,20 @@ def simquery():
 @app.route('/timeseries/<id>')
 def timeseries_id(id):
 	# should send back metadata and the timeseries itself in a JSON payload
-	return json.dumps({"metadata":id, 
-						"timeseries":{
-							"time":{"0":"1"},
-							"values":{"0":"11"}
-						}});
+	
+	# Get metadata
+	t = Timeseries.query.get(id).serialize()
+
+	# Get timeseries 
+	port, s, host = 12340, socket.socket(), socket.gethostname()
+	s.connect((host, port))
+	print("Connected to ",host," ",port)
+	try:
+		toSend = "BYID" # A = get timeseries by id, B = get all timeseries etc
+		s.send(pickle.dumps(toSend))
+		rec = s.recv(1024)
+		rec = pickle.loads(rec)
+		return json.dumps({"timeseries": rec, "metadata": t})	
+
+	finally:
+		s.close()
